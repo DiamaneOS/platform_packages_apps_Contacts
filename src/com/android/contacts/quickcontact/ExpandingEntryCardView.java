@@ -956,14 +956,24 @@ public class ExpandingEntryCardView extends CardView {
         private final String mMimeType;
         private final long mId;
         private final boolean mIsSuperPrimary;
+        private final String mCallNumber;
 
         public EntryContextMenuInfo(String copyText, String copyLabel, String mimeType, long id,
                 boolean isSuperPrimary) {
+            this(copyText, copyLabel, mimeType, id, isSuperPrimary, null);
+        }
+
+        /**
+         * @param callNumber number the entry calls, for the SIM choice. Null if it places no call
+         */
+        public EntryContextMenuInfo(String copyText, String copyLabel, String mimeType, long id,
+                boolean isSuperPrimary, String callNumber) {
             mCopyText = copyText;
             mCopyLabel = copyLabel;
             mMimeType = mimeType;
             mId = id;
             mIsSuperPrimary = isSuperPrimary;
+            mCallNumber = callNumber;
         }
 
         public String getCopyText() {
@@ -984,6 +994,10 @@ public class ExpandingEntryCardView extends CardView {
 
         public boolean isSuperPrimary() {
             return mIsSuperPrimary;
+        }
+
+        public String getCallNumber() {
+            return mCallNumber;
         }
     }
 

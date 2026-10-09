@@ -74,6 +74,7 @@ import android.provider.ContactsContract.Intents;
 import android.provider.ContactsContract.QuickContact;
 import android.provider.ContactsContract.RawContacts;
 import android.telecom.PhoneAccount;
+import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.text.BidiFormatter;
 import android.text.Spannable;
@@ -170,6 +171,7 @@ import com.android.contacts.util.ViewUtil;
 import com.android.contacts.widget.MultiShrinkScroller;
 import com.android.contacts.widget.MultiShrinkScroller.MultiShrinkScrollerListener;
 import com.android.contacts.widget.QuickContactImageView;
+import com.android.contacts.widget.SelectPhoneAccountDialogFragment;
 import com.android.contactsbind.HelpUtils;
 
 import com.google.common.collect.Lists;
@@ -459,7 +461,10 @@ public class QuickContactActivity extends ContactsActivity {
         static final int COPY_TEXT = 0;
         static final int CLEAR_DEFAULT = 1;
         static final int SET_DEFAULT = 2;
+        static final int CALL_WITH_SIM = 3;
     }
+
+    private static final String TAG_SELECT_PHONE_ACCOUNT = "select_phone_account";
 
     private final OnCreateContextMenuListener mEntryContextMenuListener =
             new OnCreateContextMenuListener() {
@@ -476,6 +481,18 @@ public class QuickContactActivity extends ContactsActivity {
                             ContextMenuIds.COPY_TEXT,
                             ContextMenu.NONE,
                             getString(R.string.copy_text));
+
+                    // With two or more SIMs, offer to choose the SIM for a call to this number.
+                    if (info.getCallNumber() != null
+                            && !CallUtil.getCallAccountChoices(
+                                            QuickContactActivity.this, info.getCallNumber())
+                                    .isEmpty()) {
+                        menu.add(
+                                ContextMenu.NONE,
+                                ContextMenuIds.CALL_WITH_SIM,
+                                ContextMenu.NONE,
+                                getString(R.string.call_with_sim));
+                    }
 
                     // Don't allow setting or clearing of defaults for non-editable contacts
                     if (!isContactEditable()) {
@@ -536,8 +553,51 @@ public class QuickContactActivity extends ContactsActivity {
                         ContactSaveService.createClearPrimaryIntent(this, menuInfo.getId());
                 this.startService(clearIntent);
                 return true;
+            case ContextMenuIds.CALL_WITH_SIM:
+                showCallWithSimDialog(menuInfo.getCallNumber());
+                return true;
             default:
                 throw new IllegalArgumentException("Unknown menu option " + item.getItemId());
+        }
+    }
+
+    /** Lets the user choose the SIM, then calls {@code number} through it. */
+    private void showCallWithSimDialog(String number) {
+        final List<PhoneAccountHandle> choices = CallUtil.getCallAccountChoices(this, number);
+        if (choices.isEmpty() || !isSafeToCommitTransactions()) {
+            // SIMs changed since the menu opened, or the activity is going away.
+            return;
+        }
+        SelectPhoneAccountDialogFragment.newInstance(
+                        R.string.call_with_sim,
+                        /* canSetDefault= */ false,
+                        choices,
+                        new CallWithSimListener(getApplicationContext(), number))
+                .show(getFragmentManager(), TAG_SELECT_PHONE_ACCOUNT);
+    }
+
+    /** Calls the number through the chosen SIM. Holds no reference to the activity. */
+    private static final class CallWithSimListener
+            extends SelectPhoneAccountDialogFragment.SelectPhoneAccountListener {
+        private final Context mAppContext;
+        private final String mNumber;
+
+        CallWithSimListener(Context appContext, String number) {
+            mAppContext = appContext;
+            mNumber = number;
+        }
+
+        @Override
+        public void onPhoneAccountSelected(
+                PhoneAccountHandle selectedAccountHandle, boolean setDefault) {
+            final Intent intent = CallUtil.getCallIntent(mNumber, selectedAccountHandle);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                ImplicitIntentsUtil.startActivityInAppIfPossible(mAppContext, intent);
+            } catch (SecurityException | ActivityNotFoundException ex) {
+                Toast.makeText(mAppContext, R.string.missing_app, Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Cannot place call with chosen SIM", ex);
+            }
         }
     }
 
@@ -1703,7 +1763,8 @@ public class QuickContactActivity extends ContactsActivity {
                                 res.getString(R.string.phoneLabelsGroup),
                                 dataItem.getMimeType(),
                                 dataItem.getId(),
-                                dataItem.isSuperPrimary());
+                                dataItem.isSuperPrimary(),
+                                PhoneCapabilityTester.isPhone(context) ? phone.getNumber() : null);
                 if (phone.hasKindTypeColumn(kind)) {
                     final int kindTypeColumn = phone.getKindTypeColumn(kind);
                     final String label = phone.getLabel();
