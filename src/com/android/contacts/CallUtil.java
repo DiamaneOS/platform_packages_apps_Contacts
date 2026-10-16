@@ -129,7 +129,7 @@ public class CallUtil {
 
     /**
      * Return an Intent for calling {@code number} through {@code phoneAccountHandle}. Not for
-     * emergency numbers; see {@link #getCallAccountChoices}.
+     * emergency numbers. See {@link #getCallAccountChoices}.
      */
     public static Intent getCallIntent(String number, PhoneAccountHandle phoneAccountHandle) {
         final Intent intent = getCallIntent(getCallUri(number));

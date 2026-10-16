@@ -3,7 +3,7 @@
      SPDX-FileCopyrightText: The Android Open Source Project
      SPDX-License-Identifier: Apache-2.0
 -->
-<!-- Android's own translations, copied unchanged. Generated; do not edit by hand. -->
+<!-- Android's own translations, copied unchanged. Generated: do not edit by hand. -->
 <resources>
     <string name="call_with_sim">为此次通话选择 SIM 卡</string>
 </resources>

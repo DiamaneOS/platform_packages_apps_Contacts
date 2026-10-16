@@ -964,7 +964,7 @@ public class ExpandingEntryCardView extends CardView {
         }
 
         /**
-         * @param callNumber number the entry calls, for the SIM choice; null if it places no call
+         * @param callNumber number the entry calls, for the SIM choice. Null if it places no call
          */
         public EntryContextMenuInfo(String copyText, String copyLabel, String mimeType, long id,
                 boolean isSuperPrimary, String callNumber) {
