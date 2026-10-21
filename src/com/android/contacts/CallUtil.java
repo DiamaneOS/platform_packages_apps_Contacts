@@ -38,7 +38,6 @@ import com.android.contactsbind.FeedbackHelper;
 import com.android.contactsbind.experiments.Flags;
 import com.android.phone.common.PhoneConstants;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -98,43 +97,6 @@ public class CallUtil {
         Uri uri = getCallUri(number);
         return PhoneNumberUtils.isEmergencyNumber(number)
                 ? getCallIntentForEmergencyNumber(uri) : getCallIntent(uri);
-    }
-
-    /**
-     * Returns the call-capable phone accounts the user can choose from to call {@code number}.
-     * Empty when there is no choice to offer: fewer than two accounts, a SIP address, an emergency
-     * number (left to the platform to route), or no permission to read phone state.
-     */
-    public static List<PhoneAccountHandle> getCallAccountChoices(Context context, String number) {
-        if (TextUtils.isEmpty(number) || PhoneNumberHelper.isUriNumber(number)
-                || PhoneNumberUtils.isEmergencyNumber(number)
-                || !PermissionsUtil.hasPermission(
-                        context, android.Manifest.permission.READ_PHONE_STATE)) {
-            return Collections.emptyList();
-        }
-        final TelecomManager telecomManager = context.getSystemService(TelecomManager.class);
-        if (telecomManager == null) {
-            return Collections.emptyList();
-        }
-        try {
-            final List<PhoneAccountHandle> accountHandles =
-                    telecomManager.getCallCapablePhoneAccounts();
-            return accountHandles != null && accountHandles.size() > 1
-                    ? accountHandles : Collections.emptyList();
-        } catch (SecurityException e) {
-            Log.w(TAG, "Cannot read call capable phone accounts", e);
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * Return an Intent for calling {@code number} through {@code phoneAccountHandle}. Not for
-     * emergency numbers. See {@link #getCallAccountChoices}.
-     */
-    public static Intent getCallIntent(String number, PhoneAccountHandle phoneAccountHandle) {
-        final Intent intent = getCallIntent(getCallUri(number));
-        intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
-        return intent;
     }
 
     /**
